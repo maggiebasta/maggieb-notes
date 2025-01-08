@@ -56,9 +56,12 @@ function parseRelativeTime(query: string): { start: string; end: string } | null
   
   // Common time expressions
   if (lowerQuery.includes('last week')) {
-    const start = new Date(now);
-    start.setDate(start.getDate() - 7);
-    return { start: start.toISOString(), end: now.toISOString() };
+    const end = new Date(now);
+    end.setHours(23, 59, 59, 999);
+    const start = new Date(end);
+    start.setDate(end.getDate() - 7);
+    start.setHours(0, 0, 0, 0);
+    return { start: start.toISOString(), end: end.toISOString() };
   }
   
   if (lowerQuery.includes('yesterday')) {
@@ -71,15 +74,20 @@ function parseRelativeTime(query: string): { start: string; end: string } | null
   }
   
   if (lowerQuery.includes('last month')) {
-    const start = new Date(now);
-    start.setMonth(start.getMonth() - 1);
-    return { start: start.toISOString(), end: now.toISOString() };
+    const end = new Date(now);
+    end.setHours(23, 59, 59, 999);
+    const start = new Date(end);
+    start.setMonth(end.getMonth() - 1);
+    start.setHours(0, 0, 0, 0);
+    return { start: start.toISOString(), end: end.toISOString() };
   }
   
   if (lowerQuery.includes('today')) {
     const start = new Date(now);
     start.setHours(0, 0, 0, 0);
-    return { start: start.toISOString(), end: now.toISOString() };
+    const end = new Date(now);
+    end.setHours(23, 59, 59, 999);
+    return { start: start.toISOString(), end: end.toISOString() };
   }
   
   return null;
