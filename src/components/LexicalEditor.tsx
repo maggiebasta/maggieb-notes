@@ -31,13 +31,24 @@ const theme = {
 
 export function LexicalEditor({ initialContent, onContentChange }: LexicalEditorProps) {
   // Initial editor configuration
+  let parsedEditorState;
+  try {
+    if (initialContent) {
+      parsedEditorState = JSON.parse(initialContent);
+    }
+  } catch (error) {
+    // If parsing fails, we'll default to undefined
+    parsedEditorState = undefined;
+    console.error('Invalid editorState JSON:', error);
+  }
+
   const initialConfig = {
     namespace: 'MaggieNotesEditor',
     theme,
     onError: (error: Error) => {
       console.error('Lexical Editor Error:', error);
     },
-    editorState: initialContent ? JSON.parse(initialContent) : undefined,
+    editorState: parsedEditorState,
   };
 
   // Handle editor changes
