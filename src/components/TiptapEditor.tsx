@@ -2,9 +2,11 @@ import { useEffect } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
+import HardBreak from '@tiptap/extension-hard-break'
 import { Extension } from '@tiptap/core'
 import { InputRule } from '@tiptap/core'
-import type { SingleCommands } from '@tiptap/core'
+import type { Editor } from '@tiptap/core'
+import type { EditorView } from '@tiptap/pm/view'
 
 // Custom extension to handle bullet creation on "-"
 const BulletOnDash = Extension.create({
@@ -36,14 +38,84 @@ export function TiptapEditor({ content, title, onUpdate, onTitleChange }: Tiptap
         bulletList: {
           keepMarks: true,
           keepAttributes: false,
+          HTMLAttributes: {
+            class: 'bullet-list',
+          },
+        },
+        listItem: {
+          HTMLAttributes: {
+            class: 'list-item',
+          },
+        },
+        paragraph: {
+          HTMLAttributes: {
+            class: 'paragraph',
+          },
+        },
+        bold: {
+          HTMLAttributes: {
+            class: 'font-bold',
+          },
+        },
+        italic: {
+          HTMLAttributes: {
+            class: 'italic',
+          },
+        },
+        history: {},
+      }),
+      HardBreak.configure({
+        keepMarks: true,
+        HTMLAttributes: {
+          class: 'hard-break',
         },
       }),
-      Underline,
+      Underline.configure({
+        HTMLAttributes: {
+          class: 'underline',
+        },
+      }),
       BulletOnDash
     ],
     content,
     onUpdate: ({ editor }) => {
-      onUpdate(editor.getHTML()) // returns HTML version of content
+      onUpdate(editor.getHTML())
+    },
+    editorProps: {
+      handleKeyDown: (view: EditorView, event: KeyboardEvent & { key: string }) => {
+        // Access editor instance from view
+        const editorView = view as unknown as { editor: Editor }
+        const editor = editorView.editor
+        if (!editor) return false
+
+        // Allow default Enter behavior for new paragraphs
+        if (event.key === 'Enter' && !event.shiftKey) {
+          return false
+        }
+        // Use Shift+Enter for hard breaks within paragraphs
+        if (event.key === 'Enter' && event.shiftKey) {
+          editor.commands.setHardBreak()
+          return true
+        }
+        // Handle Tab key for indentation
+        if (event.key === 'Tab') {
+          event.preventDefault()
+          
+          if (editor.isActive('bulletList') || editor.isActive('orderedList')) {
+            // Handle list indentation
+            if (event.shiftKey) {
+              editor.commands.liftListItem('listItem')
+            } else {
+              editor.commands.sinkListItem('listItem')
+            }
+          } else {
+            // Insert spaces for regular text indentation
+            editor.commands.insertContent('  ')
+          }
+          return true
+        }
+        return false
+      },
     }
   })
 

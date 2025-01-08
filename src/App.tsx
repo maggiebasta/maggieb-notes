@@ -167,14 +167,22 @@ function App() {
           onCreateBlankNote={() => createNote()}
         />
         <TiptapEditor 
-          content={selectedNote ? `<p>${selectedNote.content.replace(/\n/g, '<br/>')}</p>` : ''} 
+          content={selectedNote ? selectedNote.content.split('\n\n')
+            .map(para => `<p>${para.split('\n').join('<br/>')}</p>`)
+            .join('') : ''} 
           title={selectedNote?.title || ''}
           onUpdate={(newHTML) => {
             if (!selectedNote) return;
-            // Convert HTML back to plaintext for storage
+            // Convert HTML back to plaintext for storage, preserving line breaks
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = newHTML;
-            const plainText = tempDiv.textContent || '';
+            // Replace <br> and </p><p> with newlines, then clean up any extra newlines
+            const plainText = tempDiv.innerHTML
+              .replace(/<br\s*\/?>/g, '\n')
+              .replace(/<\/p>\s*<p>/g, '\n\n')
+              .replace(/<\/?p>/g, '')
+              .replace(/\n{3,}/g, '\n\n')
+              .trim();
             updateNote({ ...selectedNote, content: plainText });
           }}
           onTitleChange={(newTitle) => {
