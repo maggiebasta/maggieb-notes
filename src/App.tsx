@@ -5,6 +5,7 @@ import { Editor } from './components/Editor';
 import { TemplateSelector } from './components/TemplateSelector';
 import { supabase } from './lib/supabase';
 import { AuthForm } from './components/AuthForm';
+import { User } from '@supabase/supabase-js';
 
 /**
  * App - Main application component for MaggieB's Notes
@@ -23,7 +24,7 @@ function App() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
 
   // Set up authentication listener
   useEffect(() => {
