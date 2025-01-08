@@ -1,13 +1,19 @@
 import { useState, useEffect } from "react";
 import { Note } from "../types";
 import { findSimilarNotes } from "../lib/embeddings";
-import { generateChatResponse, isAIChatEnabled } from "../lib/openai";
+import { 
+  generateChatResponse, 
+  isAIChatEnabled, 
+  parseNaturalLanguageQuery,
+  type ParsedQuery 
+} from "../lib/openai";
 import { supabase } from "../lib/supabase";
 
-export function ChatPanel({ notes, onClose }: { notes: Note[]; onClose: () => void }) {
+export function ChatPanel({ onClose }: { onClose: () => void }) {
   const [messages, setMessages] = useState<Array<{ text: string; isUser: boolean }>>([]);
   const [userQuestion, setUserQuestion] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [parsedQuery, setParsedQuery] = useState<ParsedQuery | null>(null);
 
   // Show initial message about AI status
   useEffect(() => {
@@ -33,7 +39,9 @@ export function ChatPanel({ notes, onClose }: { notes: Note[]; onClose: () => vo
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
-      // Find similar notes using vector similarity or text search
+      // Parse the natural language query and find similar notes
+      const parsed = await parseNaturalLanguageQuery(userQuestion);
+      setParsedQuery(parsed);
       const similarNotes = await findSimilarNotes(userQuestion, user.id);
       
       // If AI is disabled, just show matching notes
@@ -50,28 +58,57 @@ export function ChatPanel({ notes, onClose }: { notes: Note[]; onClose: () => vo
         return;
       }
 
-      // For AI-enabled mode, combine local and vector search results
-      const localMatches = notes.filter(note => 
-        note.content.toLowerCase().includes(userQuestion.toLowerCase()) ||
-        note.title.toLowerCase().includes(userQuestion.toLowerCase())
-      );
-      
-      // Combine and deduplicate results
-      const allMatches = [...new Set([...localMatches, ...similarNotes])];
+      // For AI-enabled mode, use vector search results
+      const allMatches = similarNotes;
 
       // Construct prompt with context from similar notes
+      // Helper function to format dates in a friendly way
+      const formatDate = (dateStr: string) => {
+        const date = new Date(dateStr);
+        const now = new Date();
+        const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 0) return 'today';
+        if (diffDays === 1) return 'yesterday';
+        if (diffDays < 7) return `${diffDays} days ago`;
+        if (diffDays < 14) return 'last week';
+        if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+        if (diffDays < 60) return 'last month';
+        return date.toLocaleDateString();
+      };
+
       const context = allMatches
-        .map(note => `Note "${note.title}":\n${note.content}`)
+        .map(note => {
+          const friendlyDate = formatDate(note.updated_at);
+          return `Note "${note.title}" (Last updated: ${friendlyDate}):\n${note.content}`;
+        })
         .join('\n\n');
       
       const prompt = `You are a helpful AI assistant helping a user search through their notes.
-Based on the following notes, please answer the user's question.
-If the notes don't contain relevant information, say so.
+Your task is to answer questions about the user's notes, with special attention to temporal context.
+
+Instructions:
+1. If the user asks about a specific time period, focus on notes from that time frame
+2. When discussing dates, use natural language (e.g., "last week", "2 days ago")
+3. If multiple notes match the query, summarize the key points
+4. If no notes match the specified time period, mention this explicitly
 
 Notes for context:
 ${context}
 
-User question: ${userQuestion}`;
+Original user question: ${userQuestion}
+Query analysis: ${JSON.stringify({
+  topics: parsedQuery?.topics || [],
+  timeRange: parsedQuery?.timeRange ? {
+    type: parsedQuery.timeRange.type,
+    original: parsedQuery.timeRange.original,
+    humanReadable: `from ${formatDate(parsedQuery.timeRange.start)} to ${formatDate(parsedQuery.timeRange.end)}`
+  } : null,
+  action: parsedQuery?.action,
+  contentType: parsedQuery?.contentType
+}, null, 2)}
+
+Please provide a natural, conversational response that directly addresses the user's question.`;
 
       // Generate response using context
       const response = await generateChatResponse(prompt);

@@ -1,3 +1,18 @@
+// Types for structured query parsing
+export interface ParsedTimeRange {
+  type: 'relative' | 'absolute';
+  start: string; // ISO date string
+  end: string;   // ISO date string
+  original: string; // Original text (e.g., "last week")
+}
+
+export interface ParsedQuery {
+  topics: string[];
+  timeRange?: ParsedTimeRange;
+  action?: string; // e.g., "find", "show", "list"
+  contentType?: string; // e.g., "meeting", "note", "document"
+}
+
 // Check if OpenAI API key is available
 const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
 const isAIEnabled = Boolean(apiKey);
@@ -53,6 +68,63 @@ export async function generateEmbedding(text: string): Promise<number[] | null> 
     return response.data[0].embedding;
   } catch (error) {
     console.error('Error generating embedding:', error);
+    return null;
+  }
+}
+
+export async function parseNaturalLanguageQuery(query: string): Promise<ParsedQuery | null> {
+  const client = await getOpenAIClient();
+  if (!client) return null;
+
+  try {
+    const response = await client.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [
+        {
+          role: "system",
+          content: "You are a query parser that extracts structured data from natural language questions about notes."
+        },
+        { role: "user", content: query }
+      ],
+      functions: [
+        {
+          name: "parse_query",
+          description: "Parse the user's query into structured data",
+          parameters: {
+            type: "object",
+            properties: {
+              topics: {
+                type: "array",
+                items: { type: "string" },
+                description: "Key topics or concepts mentioned in the query"
+              },
+              timeRange: {
+                type: "object",
+                properties: {
+                  type: { type: "string", enum: ["relative", "absolute"] },
+                  start: { type: "string", format: "date-time" },
+                  end: { type: "string", format: "date-time" },
+                  original: { type: "string" }
+                },
+                required: ["type", "start", "end", "original"]
+              },
+              action: { type: "string" },
+              contentType: { type: "string" }
+            },
+            required: ["topics"]
+          }
+        }
+      ],
+      function_call: { name: "parse_query" }
+    });
+
+    const functionCall = response.choices[0].message.function_call;
+    if (!functionCall?.arguments) return null;
+
+    const parsed = JSON.parse(functionCall.arguments);
+    return parsed as ParsedQuery;
+  } catch (error) {
+    console.error('Error parsing natural language query:', error);
     return null;
   }
 }

@@ -1,6 +1,12 @@
 import { Note } from '../types';
 import { supabase } from './supabase';
-import { generateEmbedding, isAIChatEnabled } from './openai';
+import { 
+  generateEmbedding, 
+  isAIChatEnabled, 
+  parseNaturalLanguageQuery,
+  type ParsedQuery,
+  type ParsedTimeRange 
+} from './openai';
 
 /**
  * Updates the embedding for a note by generating a new embedding from its content
@@ -40,44 +46,128 @@ export async function updateNoteEmbedding(note: Note): Promise<void> {
 }
 
 /**
- * Finds similar notes based on a query string by comparing embeddings.
- * Returns the top k most similar notes, or matches based on text search if AI is disabled.
+ * Finds similar notes based on a natural language query by combining
+ * vector similarity search with date filtering and text search.
  */
+// Helper function to parse common time expressions
+function parseRelativeTime(query: string): { start: string; end: string } | null {
+  const now = new Date();
+  const lowerQuery = query.toLowerCase();
+  
+  // Common time expressions
+  if (lowerQuery.includes('last week')) {
+    const start = new Date(now);
+    start.setDate(start.getDate() - 7);
+    return { start: start.toISOString(), end: now.toISOString() };
+  }
+  
+  if (lowerQuery.includes('yesterday')) {
+    const start = new Date(now);
+    start.setDate(start.getDate() - 1);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setHours(23, 59, 59, 999);
+    return { start: start.toISOString(), end: end.toISOString() };
+  }
+  
+  if (lowerQuery.includes('last month')) {
+    const start = new Date(now);
+    start.setMonth(start.getMonth() - 1);
+    return { start: start.toISOString(), end: now.toISOString() };
+  }
+  
+  if (lowerQuery.includes('today')) {
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    return { start: start.toISOString(), end: now.toISOString() };
+  }
+  
+  return null;
+}
+
 export async function findSimilarNotes(query: string, userId: string, limit: number = 5): Promise<Note[]> {
   try {
+    // Parse the natural language query
+    const parsedQuery = isAIChatEnabled() ? await parseNaturalLanguageQuery(query) : null;
+    const timeRange = parsedQuery?.timeRange;
+
+    // Base query builder
+    let queryBuilder = supabase
+      .from('notes')
+      .select('*')
+      .eq('user_id', userId);
+
+    // Try to parse time range from query if not provided by AI
+    const effectiveTimeRange = timeRange || (!isAIChatEnabled() ? parseRelativeTime(query) : null);
+
+    // Add date filtering if time range is specified or parsed
+    if (effectiveTimeRange) {
+      queryBuilder = queryBuilder
+        .gte('updated_at', effectiveTimeRange.start)
+        .lte('updated_at', effectiveTimeRange.end);
+    }
+
     if (!isAIChatEnabled()) {
-      // Fallback to basic text search when AI is disabled
-      const searchTerm = `%${query.replace(/[%_]/g, '')}%`; // Escape special characters
-      const { data, error } = await supabase
-        .from('notes')
-        .select('*')
-        .eq('user_id', userId)
-        .or(`title.ilike.${searchTerm},content.ilike.${searchTerm}`)
-        .limit(limit);
+      // Enhanced fallback text search with better term extraction
+      const searchTerms = query
+        .toLowerCase()
+        // Remove time-related terms to improve matching
+        .replace(/last (week|month|year)|yesterday|today/g, '')
+        .trim()
+        .split(/\s+/)
+        .filter(term => term.length > 2) // Filter out short words
+        .map(term => `%${term.replace(/[%_]/g, '')}%`); // Escape special characters
+
+      if (searchTerms.length > 0) {
+        const conditions = searchTerms.map(term => 
+          `title.ilike.${term},content.ilike.${term}`
+        ).join(',');
+        
+        queryBuilder = queryBuilder.or(conditions);
+      }
+
+      const { data, error } = await queryBuilder.limit(limit);
 
       if (error) {
         console.error('Error in text search:', error);
         return [];
       }
 
-      // Ensure results are unique by ID
-      const uniqueData = data ? Array.from(new Map(data.map(note => [note.id, note])).values()) : [];
-      return uniqueData;
+      // Score results by match count and sort
+      const results = data || [];
+      const scored = results.map(note => {
+        const matchCount = searchTerms.filter(term => {
+          const termWithoutWildcards = term.replace(/%/g, '');
+          return note.title.toLowerCase().includes(termWithoutWildcards) ||
+                 note.content.toLowerCase().includes(termWithoutWildcards);
+        }).length;
+        return { ...note, score: matchCount };
+      });
+
+      return scored
+        .sort((a, b) => b.score - a.score)
+        .map(({ score, ...note }) => note);
     }
 
-    const queryEmbedding = await generateEmbedding(query);
+    // Generate embedding for semantic search
+    const queryEmbedding = await generateEmbedding(
+      parsedQuery ? parsedQuery.topics.join(' ') : query
+    );
+    
     if (!queryEmbedding) {
       console.warn('Failed to generate embedding for query, falling back to text search');
       return findSimilarNotes(query, userId, limit);
     }
     
-    // Perform vector similarity search using dot product
+    // Perform vector similarity search with date filtering
     const { data, error } = await supabase
       .rpc('match_notes', {
         query_embedding: queryEmbedding,
         match_threshold: 0.5,
         match_count: limit,
-        p_user_id: userId
+        p_user_id: userId,
+        start_date: timeRange?.start || null,
+        end_date: timeRange?.end || null
       });
 
     if (error) {
