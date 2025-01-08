@@ -107,10 +107,17 @@ export function AuthForm() {
             onClick={async () => {
               try {
                 // Use the root domain as redirect URL and let Supabase handle the callback
+                // Get the current URL's origin for redirect
+                const currentOrigin = window.location.origin;
+                // Use current origin for OAuth redirect
                 const { error } = await supabase.auth.signInWithOAuth({
                   provider: 'google',
                   options: {
-                    redirectTo: window.location.origin,
+                    redirectTo: currentOrigin,
+                    queryParams: {
+                      // Pass the origin as a state parameter to maintain context
+                      origin: currentOrigin
+                    }
                   },
                 });
                 if (error) throw error;
