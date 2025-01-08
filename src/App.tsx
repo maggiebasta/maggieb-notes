@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Note, Template } from './types';
 import { User } from '@supabase/supabase-js';
 import { ChatBubble } from './components/ChatBubble';
+import { updateNoteEmbedding } from './lib/embeddings';
 import { ChatPanel } from './components/ChatPanel';
 import { NoteList } from './components/NoteList';
 import { Editor } from './components/Editor';
@@ -96,6 +97,9 @@ function App() {
       return;
     }
 
+    // Generate embedding for the new note
+    await updateNoteEmbedding(data);
+
     setNotes(prevNotes => [data, ...prevNotes]);
     setSelectedNote(data);
   };
@@ -118,7 +122,11 @@ function App() {
 
     if (error) {
       console.error('Error updating note:', error);
+      return;
     }
+
+    // Generate new embedding for the updated note
+    await updateNoteEmbedding(updatedNote);
   };
 
   // Delete a note

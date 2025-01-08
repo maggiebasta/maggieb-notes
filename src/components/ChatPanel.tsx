@@ -1,27 +1,59 @@
 import { useState } from "react";
 import { Note } from "../types";
+import { findSimilarNotes } from "../lib/embeddings";
+import { generateChatResponse } from "../lib/openai";
+import { supabase } from "../lib/supabase";
 
 export function ChatPanel({ notes, onClose }: { notes: Note[]; onClose: () => void }) {
   const [messages, setMessages] = useState<Array<{ text: string; isUser: boolean }>>([]);
   const [userQuestion, setUserQuestion] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   async function handleSend() {
     if (!userQuestion.trim()) return;
+    setIsLoading(true);
 
-    // Add user message
-    setMessages(prev => [...prev, { text: userQuestion, isUser: true }]);
+    try {
+      // Add user message
+      setMessages(prev => [...prev, { text: userQuestion, isUser: true }]);
+
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
+      // Find similar notes using vector similarity
+      const similarNotes = await findSimilarNotes(userQuestion, user.id);
+
+      // Construct prompt with context from similar notes
+      const context = similarNotes
+        .map(note => `Note "${note.title}":\n${note.content}`)
+        .join('\n\n');
+      
+      const prompt = `You are a helpful AI assistant helping a user search through their notes.
+Based on the following notes, please answer the user's question.
+If the notes don't contain relevant information, say so.
+
+Notes for context:
+${context}
+
+User question: ${userQuestion}`;
+
+      // Generate response using context
+      const response = await generateChatResponse(prompt);
+
+      // Add AI response
+      setMessages(prev => [...prev, { text: response, isUser: false }]);
     
-    // TODO: Implement RAG in step 004
-    // 1) Convert question to embedding
-    // 2) Search similar notes using notes array
-    // 3) Generate response with context
-    console.log('Available notes:', notes.length);
-    setMessages(prev => [...prev, { 
-      text: "This feature is coming soon! For now, try searching your notes manually.", 
-      isUser: false 
-    }]);
-    
-    setUserQuestion("");
+    } catch (error) {
+      console.error('Error in handleSend:', error);
+      setMessages(prev => [...prev, { 
+        text: "Sorry, there was an error processing your request. Please try again.", 
+        isUser: false 
+      }]);
+    } finally {
+      setIsLoading(false);
+      setUserQuestion("");
+    }
   }
 
   return (
@@ -60,9 +92,14 @@ export function ChatPanel({ notes, onClose }: { notes: Note[]; onClose: () => vo
         />
         <button
           onClick={handleSend}
-          className="bg-blue-500 text-white px-4 py-2 rounded-r hover:bg-blue-600"
+          disabled={isLoading}
+          className={`px-4 py-2 rounded-r text-white ${
+            isLoading 
+              ? "bg-blue-400 cursor-not-allowed" 
+              : "bg-blue-500 hover:bg-blue-600"
+          }`}
         >
-          Send
+          {isLoading ? "..." : "Send"}
         </button>
       </div>
     </div>
