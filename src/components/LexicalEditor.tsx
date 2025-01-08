@@ -8,6 +8,7 @@ import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
 import { EditorState, $getRoot } from 'lexical';
 import { ErrorBoundary as ReactErrorBoundary } from 'react-error-boundary';
 import { AutoListPlugin } from './AutoListPlugin';
+import { ListItemNode, ListNode } from '@lexical/list';
 
 // Custom error boundary component
 function LexicalErrorBoundary({ children }: { children: React.ReactNode }) {
@@ -49,6 +50,7 @@ export function LexicalEditor({ initialContent, onContentChange }: LexicalEditor
       console.error('Lexical Editor Error:', error);
     },
     editorState: parsedEditorState,
+    nodes: [ListItemNode, ListNode],
   };
 
   // Handle editor changes
