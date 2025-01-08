@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react';
 import { Note } from '../types';
+import { LexicalEditor } from './LexicalEditor';
 
 interface EditorProps {
   note: Note | null;
@@ -12,16 +13,7 @@ export function Editor({ note, onNoteChange }: EditorProps) {
     onNoteChange({
       ...note,
       title: e.target.value,
-      updatedAt: new Date()
-    });
-  }, [note, onNoteChange]);
-
-  const handleContentChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    if (!note) return;
-    onNoteChange({
-      ...note,
-      content: e.target.value,
-      updatedAt: new Date()
+      updated_at: new Date().toISOString()
     });
   }, [note, onNoteChange]);
 
@@ -42,11 +34,16 @@ export function Editor({ note, onNoteChange }: EditorProps) {
         className="w-full text-2xl font-bold mb-4 bg-transparent border-none outline-none"
         placeholder="Note title"
       />
-      <textarea
-        value={note.content}
-        onChange={handleContentChange}
-        className="w-full h-[calc(100vh-200px)] p-4 bg-white rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        placeholder="Start writing..."
+      <LexicalEditor
+        initialContent={note.editorState}
+        onContentChange={(content, editorState) => {
+          onNoteChange({
+            ...note,
+            content,
+            editorState,
+            updated_at: new Date().toISOString()
+          });
+        }}
       />
     </div>
   );
