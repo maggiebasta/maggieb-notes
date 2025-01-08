@@ -62,18 +62,28 @@ function App() {
       .from('notes')
       .select('*')
       .order('updated_at', { ascending: false });
-    if (data) setNotes(data);
+    if (data) {
+      // Ensure all loaded notes have HTML-formatted content
+      const formattedData = data.map(note => ({
+        ...note,
+        content: note.content.startsWith('<p>') ? note.content : `<p>${note.content.replace(/\n/g, '<br/>')}</p>`
+      }));
+      setNotes(formattedData);
+    }
   };
 
   // Create a new note, optionally from a template
   const createNote = async (template?: Template) => {
     if (!user) return;
 
-    // Add current date to note content
+    // Add current date to note content and format as HTML
     const today = new Date().toLocaleDateString();
-    const content = template 
+    const plainContent = template 
       ? `${today}\n\n${template.content}`
       : `${today}\n\n`;
+    
+    // Convert to HTML format
+    const content = `<p>${plainContent.replace(/\n/g, '<br/>')}</p>`;
 
     const newNote = {
       user_id: user.id,
@@ -157,8 +167,20 @@ function App() {
           onCreateBlankNote={() => createNote()}
         />
         <TiptapEditor 
-          content={selectedNote?.content || ''} 
-          onUpdate={(newHTML) => updateNote({ ...selectedNote, content: newHTML } as Note)} 
+          content={selectedNote ? `<p>${selectedNote.content.replace(/\n/g, '<br/>')}</p>` : ''} 
+          title={selectedNote?.title || ''}
+          onUpdate={(newHTML) => {
+            if (!selectedNote) return;
+            // Convert HTML back to plaintext for storage
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = newHTML;
+            const plainText = tempDiv.textContent || '';
+            updateNote({ ...selectedNote, content: plainText });
+          }}
+          onTitleChange={(newTitle) => {
+            if (!selectedNote) return;
+            updateNote({ ...selectedNote, title: newTitle });
+          }}
         />
       </div>
     </div>
