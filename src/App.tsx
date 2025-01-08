@@ -144,14 +144,6 @@ function App() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <button
-        onClick={async () => {
-          await supabase.auth.signOut();
-        }}
-        className="absolute top-4 right-20 bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-md shadow-sm z-20"
-      >
-        Logout
-      </button>
       <div className="flex flex-1 relative">
         <NoteList
           notes={notes}
