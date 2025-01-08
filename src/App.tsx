@@ -1,5 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Note, Template } from './types';
+import { User } from '@supabase/supabase-js';
+import { ChatBubble } from './components/ChatBubble';
+import { ChatPanel } from './components/ChatPanel';
 import { NoteList } from './components/NoteList';
 import { Editor } from './components/Editor';
 import { TemplateSelector } from './components/TemplateSelector';
@@ -23,7 +26,8 @@ function App() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [showChat, setShowChat] = useState(false);
 
   // Set up authentication listener
   useEffect(() => {
@@ -144,6 +148,13 @@ function App() {
   return (
     <div className="flex h-screen bg-gray-50">
       <div className="flex flex-1 relative">
+        <ChatBubble onOpenChat={() => setShowChat(true)} />
+        {showChat && (
+          <ChatPanel
+            notes={notes}
+            onClose={() => setShowChat(false)}
+          />
+        )}
         <NoteList
           notes={notes}
           onNoteSelect={setSelectedNote}
