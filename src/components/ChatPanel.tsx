@@ -22,10 +22,20 @@ export function ChatPanel({ notes, onClose }: { notes: Note[]; onClose: () => vo
       if (!user) throw new Error("User not authenticated");
 
       // Find similar notes using vector similarity
+      // First check if we have the notes locally
+      const localMatches = notes.filter(note => 
+        note.content.toLowerCase().includes(userQuestion.toLowerCase()) ||
+        note.title.toLowerCase().includes(userQuestion.toLowerCase())
+      );
+
+      // Then get vector similarity matches
       const similarNotes = await findSimilarNotes(userQuestion, user.id);
+      
+      // Combine and deduplicate results
+      const allMatches = [...new Set([...localMatches, ...similarNotes])];
 
       // Construct prompt with context from similar notes
-      const context = similarNotes
+      const context = allMatches
         .map(note => `Note "${note.title}":\n${note.content}`)
         .join('\n\n');
       
