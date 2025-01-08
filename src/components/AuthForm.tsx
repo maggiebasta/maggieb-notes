@@ -106,13 +106,13 @@ export function AuthForm() {
             type="button"
             onClick={async () => {
               try {
-                // Determine the appropriate redirect URL based on environment
-                const isNetlifyPreview = import.meta.env.VITE_NETLIFY === 'true' && import.meta.env.VITE_DEPLOY_PRIME_URL;
-                const redirectTo = isNetlifyPreview
-                  ? `${import.meta.env.VITE_DEPLOY_PRIME_URL}/auth/v1/callback`
+                // Use the same site URL as configured in Supabase client
+                // Determine the redirect URL based on environment
+                const redirectTo = import.meta.env.VITE_SITE_URL 
+                  ? `${import.meta.env.VITE_SITE_URL}/auth/v1/callback`
                   : import.meta.env.DEV
-                    ? 'https://google-login-app-tunnel-v6luq9kx.devinapps.com/auth/v1/callback'
-                    : undefined; // Use Supabase default in production
+                    ? 'http://localhost:5173/auth/v1/callback'
+                    : undefined;
                 const { error } = await supabase.auth.signInWithOAuth({
                   provider: 'google',
                   options: {
