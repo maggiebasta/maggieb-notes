@@ -21,9 +21,11 @@ export function ChatPanel({ notes, onClose }: { notes: Note[]; onClose: () => vo
 
   async function handleSend() {
     if (!userQuestion.trim()) return;
+    if (isLoading) return; // Prevent duplicate submissions while loading
     setIsLoading(true);
 
     try {
+
       // Add user message
       setMessages(prev => [...prev, { text: userQuestion, isUser: true }]);
 
@@ -36,9 +38,11 @@ export function ChatPanel({ notes, onClose }: { notes: Note[]; onClose: () => vo
       
       // If AI is disabled, just show matching notes
       if (!isAIChatEnabled()) {
-        const response = similarNotes.length > 0
-          ? `Found ${similarNotes.length} matching notes:\n\n${
-              similarNotes.map(note => `- ${note.title}`).join('\n')
+        // Ensure unique notes by title
+        const uniqueNotes = Array.from(new Map(similarNotes.map(note => [note.title, note])).values());
+        const response = uniqueNotes.length > 0
+          ? `Found ${uniqueNotes.length} matching note${uniqueNotes.length === 1 ? '' : 's'}:\n\n${
+              uniqueNotes.map(note => `- ${note.title}`).join('\n')
             }`
           : "No matching notes found.";
         

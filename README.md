@@ -58,11 +58,26 @@ A note-taking application built with React, TypeScript, and Supabase.
 ### Optional Environment Variables
 - `VITE_OPENAI_API_KEY`: Your OpenAI API key (required for AI chat features)
 
+### AI Chat Features
+The app includes an AI-powered chat interface for searching and interacting with your notes:
+
+#### With OpenAI API Key (`VITE_OPENAI_API_KEY` configured):
+- Full RAG (Retrieval Augmented Generation) capabilities
+- Semantic search using vector embeddings
+- Natural language understanding of note contents
+- Contextual responses based on note content
+
+#### Without OpenAI API Key:
+- Basic text search functionality remains available
+- Searches note titles and content for matching terms
+- Results are deduplicated and sorted by relevance
+- Simple list-based presentation of matching notes
+
 ### Local Development
 Create a `.env.local` file in the root directory with the above variables.
 
 ### Netlify Deployment
 1. Go to Site Settings → Build & Deploy → Environment
 2. Add the environment variables listed above
-3. Without `VITE_OPENAI_API_KEY`, the app will still work but AI chat features will be limited to basic text search
+3. The app will automatically detect available features based on configuration
 4. Run development server: `npm run dev`

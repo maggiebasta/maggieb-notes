@@ -47,15 +47,22 @@ export async function findSimilarNotes(query: string, userId: string, limit: num
   try {
     if (!isAIChatEnabled()) {
       // Fallback to basic text search when AI is disabled
+      const searchTerm = `%${query.replace(/[%_]/g, '')}%`; // Escape special characters
       const { data, error } = await supabase
         .from('notes')
         .select('*')
         .eq('user_id', userId)
-        .or(`title.ilike.%${query}%,content.ilike.%${query}%`)
+        .or(`title.ilike.${searchTerm},content.ilike.${searchTerm}`)
         .limit(limit);
 
-      if (error) throw error;
-      return data || [];
+      if (error) {
+        console.error('Error in text search:', error);
+        return [];
+      }
+
+      // Ensure results are unique by ID
+      const uniqueData = data ? Array.from(new Map(data.map(note => [note.id, note])).values()) : [];
+      return uniqueData;
     }
 
     const queryEmbedding = await generateEmbedding(query);
