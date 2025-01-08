@@ -11,6 +11,10 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.7",
+    "@tiptap/core": "^2.11.0",
+    "@tiptap/extension-underline": "^2.11.0",
+    "@tiptap/react": "^2.11.0",
+    "@tiptap/starter-kit": "^2.11.0",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

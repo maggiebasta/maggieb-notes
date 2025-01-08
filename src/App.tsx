@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Note, Template } from './types';
 import { NoteList } from './components/NoteList';
-import { Editor } from './components/Editor';
+import { TiptapEditor } from './components/TiptapEditor';
 import { TemplateSelector } from './components/TemplateSelector';
 import { supabase } from './lib/supabase';
 import { AuthForm } from './components/AuthForm';
@@ -156,7 +156,10 @@ function App() {
           onCreateFromTemplate={createNote}
           onCreateBlankNote={() => createNote()}
         />
-        <Editor note={selectedNote} onNoteChange={updateNote} />
+        <TiptapEditor 
+          content={selectedNote?.content || ''} 
+          onUpdate={(newHTML) => updateNote({ ...selectedNote, content: newHTML } as Note)} 
+        />
       </div>
     </div>
   );
