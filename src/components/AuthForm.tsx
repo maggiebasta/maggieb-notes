@@ -106,13 +106,8 @@ export function AuthForm() {
             type="button"
             onClick={async () => {
               try {
-                // Use the same site URL as configured in Supabase client
-                // Determine the redirect URL based on environment
-                const redirectTo = import.meta.env.VITE_SITE_URL 
-                  ? `${import.meta.env.VITE_SITE_URL}/auth/v1/callback`
-                  : import.meta.env.DEV
-                    ? 'http://localhost:5173/auth/v1/callback'
-                    : undefined;
+                // Use the current origin for the redirect URL
+                const redirectTo = `${window.location.origin}/auth/v1/callback`;
                 const { error } = await supabase.auth.signInWithOAuth({
                   provider: 'google',
                   options: {
