@@ -1,13 +1,23 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Note } from "../types";
 import { findSimilarNotes } from "../lib/embeddings";
-import { generateChatResponse } from "../lib/openai";
+import { generateChatResponse, isAIChatEnabled } from "../lib/openai";
 import { supabase } from "../lib/supabase";
 
 export function ChatPanel({ notes, onClose }: { notes: Note[]; onClose: () => void }) {
   const [messages, setMessages] = useState<Array<{ text: string; isUser: boolean }>>([]);
   const [userQuestion, setUserQuestion] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // Show initial message about AI status
+  useEffect(() => {
+    if (!isAIChatEnabled()) {
+      setMessages([{
+        text: "AI chat is currently in basic search mode. To enable all features, please configure the OpenAI API key.",
+        isUser: false
+      }]);
+    }
+  }, []);
 
   async function handleSend() {
     if (!userQuestion.trim()) return;
@@ -21,15 +31,26 @@ export function ChatPanel({ notes, onClose }: { notes: Note[]; onClose: () => vo
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
-      // Find similar notes using vector similarity
-      // First check if we have the notes locally
+      // Find similar notes using vector similarity or text search
+      const similarNotes = await findSimilarNotes(userQuestion, user.id);
+      
+      // If AI is disabled, just show matching notes
+      if (!isAIChatEnabled()) {
+        const response = similarNotes.length > 0
+          ? `Found ${similarNotes.length} matching notes:\n\n${
+              similarNotes.map(note => `- ${note.title}`).join('\n')
+            }`
+          : "No matching notes found.";
+        
+        setMessages(prev => [...prev, { text: response, isUser: false }]);
+        return;
+      }
+
+      // For AI-enabled mode, combine local and vector search results
       const localMatches = notes.filter(note => 
         note.content.toLowerCase().includes(userQuestion.toLowerCase()) ||
         note.title.toLowerCase().includes(userQuestion.toLowerCase())
       );
-
-      // Then get vector similarity matches
-      const similarNotes = await findSimilarNotes(userQuestion, user.id);
       
       // Combine and deduplicate results
       const allMatches = [...new Set([...localMatches, ...similarNotes])];

@@ -49,5 +49,20 @@ A note-taking application built with React, TypeScript, and Supabase.
 
 1. Clone the repository
 2. Install dependencies: `npm install`
-3. Set up Supabase environment variables
+3. Set up environment variables
+
+### Required Environment Variables
+- `VITE_SUPABASE_URL`: Your Supabase project URL
+- `VITE_SUPABASE_ANON_KEY`: Your Supabase anonymous key
+
+### Optional Environment Variables
+- `VITE_OPENAI_API_KEY`: Your OpenAI API key (required for AI chat features)
+
+### Local Development
+Create a `.env.local` file in the root directory with the above variables.
+
+### Netlify Deployment
+1. Go to Site Settings → Build & Deploy → Environment
+2. Add the environment variables listed above
+3. Without `VITE_OPENAI_API_KEY`, the app will still work but AI chat features will be limited to basic text search
 4. Run development server: `npm run dev`
