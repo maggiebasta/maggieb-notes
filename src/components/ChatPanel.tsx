@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react";
 import { Note } from "../types";
 import { findSimilarNotes } from "../lib/embeddings";
+import { supabase } from "../lib/supabase";
 import { 
   generateChatResponse, 
   isAIChatEnabled, 
   parseNaturalLanguageQuery,
   type ParsedQuery 
 } from "../lib/openai";
-import { supabase } from "../lib/supabase";
 
-export function ChatPanel({ onClose }: { onClose: () => void }) {
+export function ChatPanel({ onClose, notes }: { onClose: () => void; notes: Note[] }) {
   const [messages, setMessages] = useState<Array<{ text: string; isUser: boolean }>>([]);
   const [userQuestion, setUserQuestion] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -35,14 +35,12 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
       // Add user message
       setMessages(prev => [...prev, { text: userQuestion, isUser: true }]);
 
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not authenticated");
-
-      // Parse the natural language query and find similar notes
+      // Parse the natural language query
       const parsed = await parseNaturalLanguageQuery(userQuestion);
       setParsedQuery(parsed);
-      const similarNotes = await findSimilarNotes(userQuestion, user.id);
+
+      // Filter notes based on the query
+      const similarNotes = await findSimilarNotes(userQuestion, notes);
       
       // If AI is disabled, just show matching notes
       if (!isAIChatEnabled()) {

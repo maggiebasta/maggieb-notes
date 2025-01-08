@@ -93,26 +93,24 @@ function parseRelativeTime(query: string): { start: string; end: string } | null
   return null;
 }
 
-export async function findSimilarNotes(query: string, userId: string, limit: number = 5): Promise<Note[]> {
+export async function findSimilarNotes(query: string, notes: Note[], limit: number = 5): Promise<Note[]> {
   try {
     // Parse the natural language query
     const parsedQuery = isAIChatEnabled() ? await parseNaturalLanguageQuery(query) : null;
     const timeRange = parsedQuery?.timeRange;
 
-    // Base query builder
-    let queryBuilder = supabase
-      .from('notes')
-      .select('*')
-      .eq('user_id', userId);
-
     // Try to parse time range from query if not provided by AI
     const effectiveTimeRange = timeRange || (!isAIChatEnabled() ? parseRelativeTime(query) : null);
 
-    // Add date filtering if time range is specified or parsed
+    // Filter notes by date range if specified
+    let filteredNotes = notes;
     if (effectiveTimeRange) {
-      queryBuilder = queryBuilder
-        .gte('updated_at', effectiveTimeRange.start)
-        .lte('updated_at', effectiveTimeRange.end);
+      filteredNotes = notes.filter(note => {
+        const noteDate = new Date(note.updated_at);
+        const startDate = new Date(effectiveTimeRange.start);
+        const endDate = new Date(effectiveTimeRange.end);
+        return noteDate >= startDate && noteDate <= endDate;
+      });
     }
 
     if (!isAIChatEnabled()) {
@@ -124,36 +122,21 @@ export async function findSimilarNotes(query: string, userId: string, limit: num
         .trim()
         .split(/\s+/)
         .filter(term => term.length > 2) // Filter out short words
-        .map(term => `%${term.replace(/[%_]/g, '')}%`); // Escape special characters
-
-      if (searchTerms.length > 0) {
-        const conditions = searchTerms.map(term => 
-          `title.ilike.${term},content.ilike.${term}`
-        ).join(',');
-        
-        queryBuilder = queryBuilder.or(conditions);
-      }
-
-      const { data, error } = await queryBuilder.limit(limit);
-
-      if (error) {
-        console.error('Error in text search:', error);
-        return [];
-      }
+        .map(term => term.toLowerCase()); // Convert to lowercase for case-insensitive matching
 
       // Score results by match count and sort
-      const results = data || [];
-      const scored = results.map(note => {
-        const matchCount = searchTerms.filter(term => {
-          const termWithoutWildcards = term.replace(/%/g, '');
-          return note.title.toLowerCase().includes(termWithoutWildcards) ||
-                 note.content.toLowerCase().includes(termWithoutWildcards);
-        }).length;
+      const scored = filteredNotes.map(note => {
+        const matchCount = searchTerms.filter(term => 
+          note.title.toLowerCase().includes(term) ||
+          note.content.toLowerCase().includes(term)
+        ).length;
         return { ...note, score: matchCount };
       });
 
       return scored
+        .filter(note => note.score > 0)
         .sort((a, b) => b.score - a.score)
+        .slice(0, limit)
         .map(({ score, ...note }) => note);
     }
 
@@ -164,26 +147,34 @@ export async function findSimilarNotes(query: string, userId: string, limit: num
     
     if (!queryEmbedding) {
       console.warn('Failed to generate embedding for query, falling back to text search');
-      return findSimilarNotes(query, userId, limit);
+      return findSimilarNotes(query, filteredNotes, limit);
     }
     
-    // Perform vector similarity search with date filtering
-    const { data, error } = await supabase
-      .rpc('match_notes', {
-        query_embedding: queryEmbedding,
-        match_threshold: 0.5,
-        match_count: limit,
-        p_user_id: userId,
-        start_date: timeRange?.start || null,
-        end_date: timeRange?.end || null
-      });
+    // Perform vector similarity search with in-memory notes
+    const results = await Promise.all(
+      filteredNotes.map(async (note) => {
+        // Skip notes without embeddings
+        if (!note.embedding) return null;
 
-    if (error) {
-      console.error('Error finding similar notes:', error);
-      throw error;
-    }
+        // Calculate cosine similarity
+        const similarity = 1 - (
+          note.embedding.reduce((sum: number, a: number, i: number) => 
+            sum + (a - queryEmbedding[i]) ** 2, 0
+          ) / 2
+        );
 
-    return data || [];
+        return { ...note, similarity };
+      })
+    );
+
+    // Filter out notes without embeddings and sort by similarity
+    return results
+      .filter((result): result is Note & { similarity: number } => 
+        result !== null && result.similarity > 0.5
+      )
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, limit)
+      .map(({ similarity, ...note }) => note);
   } catch (error) {
     console.error('Error in findSimilarNotes:', error);
     return [];
