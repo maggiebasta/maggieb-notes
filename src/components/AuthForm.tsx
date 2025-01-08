@@ -32,7 +32,11 @@ export function AuthForm() {
         if (error) throw error;
       }
     } catch (err) {
-      setError(err.message);
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unexpected error occurred');
+      }
     }
   };
 
@@ -102,8 +106,14 @@ export function AuthForm() {
             type="button"
             onClick={async () => {
               try {
+                const redirectTo = import.meta.env.DEV
+                  ? 'https://google-login-app-tunnel-v6luq9kx.devinapps.com/auth/v1/callback'
+                  : undefined; // Use Supabase default in production
                 const { error } = await supabase.auth.signInWithOAuth({
                   provider: 'google',
+                  options: {
+                    redirectTo,
+                  },
                 });
                 if (error) throw error;
               } catch (err) {
