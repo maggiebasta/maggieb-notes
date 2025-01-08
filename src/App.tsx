@@ -84,6 +84,7 @@ function App() {
       title: template ? template.name : 'Untitled Note',
       content,
       template_id: template?.id,
+      updated_at: new Date().toISOString(),
     };
 
     const { data, error } = await supabase
