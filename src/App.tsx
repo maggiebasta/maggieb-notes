@@ -6,6 +6,18 @@ import { TemplateSelector } from './components/TemplateSelector';
 import { supabase } from './lib/supabase';
 import { AuthForm } from './components/AuthForm';
 
+/**
+ * App - Main application component for MaggieB's Notes
+ * 
+ * This component serves as the root of the application, managing:
+ * - User authentication state
+ * - Notes CRUD operations
+ * - Template selection and application
+ * - Real-time updates with Supabase
+ * 
+ * The component conditionally renders either the authentication form
+ * or the main application interface based on user login status.
+ */
 function App() {
   // State management for notes, templates, selected note, and user
   const [notes, setNotes] = useState<Note[]>([]);
