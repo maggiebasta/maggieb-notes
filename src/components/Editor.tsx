@@ -12,7 +12,7 @@ export function Editor({ note, onNoteChange }: EditorProps) {
     onNoteChange({
       ...note,
       title: e.target.value,
-      updatedAt: new Date()
+      updated_at: new Date().toISOString()
     });
   }, [note, onNoteChange]);
 
@@ -21,7 +21,7 @@ export function Editor({ note, onNoteChange }: EditorProps) {
     onNoteChange({
       ...note,
       content: e.target.value,
-      updatedAt: new Date()
+      updated_at: new Date().toISOString()
     });
   }, [note, onNoteChange]);
 
