@@ -26,7 +26,7 @@ export function Editor({ note, onNoteChange }: EditorProps) {
     content: note?.content || '',
     editorProps: {
       attributes: {
-        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none',
+        class: 'prose prose-sm max-w-none leading-normal',
       },
     },
     onUpdate: ({ editor }) => {
