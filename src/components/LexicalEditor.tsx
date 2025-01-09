@@ -32,16 +32,39 @@ const theme = {
 
 export function LexicalEditor({ initialContent, onContentChange }: LexicalEditorProps) {
   // Initial editor configuration
+  // Define default editor state for new notes
+  const defaultEditorState = {
+    root: {
+      children: [
+        {
+          children: [],
+          direction: null,
+          format: "",
+          indent: 0,
+          type: "paragraph",
+          version: 1
+        }
+      ],
+      direction: null,
+      format: "",
+      indent: 0,
+      type: "root",
+      version: 1
+    }
+  };
+
+  // Try to parse initial content or use default
   let parsedEditorState;
   try {
     if (initialContent) {
       parsedEditorState = JSON.parse(initialContent);
     }
   } catch (error) {
-    // If parsing fails, we'll default to undefined
-    parsedEditorState = undefined;
     console.error('Invalid editorState JSON:', error);
   }
+
+  // Use parsed state or fall back to default
+  const editorStateToUse = parsedEditorState || defaultEditorState;
 
   const initialConfig = {
     namespace: 'MaggieNotesEditor',
@@ -49,7 +72,7 @@ export function LexicalEditor({ initialContent, onContentChange }: LexicalEditor
     onError: (error: Error) => {
       console.error('Lexical Editor Error:', error);
     },
-    editorState: parsedEditorState,
+    editorState: editorStateToUse,
     nodes: [ListItemNode, ListNode],
   };
 
