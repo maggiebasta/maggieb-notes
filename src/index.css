@@ -5,6 +5,7 @@
 /* Editor Styles */
 .ProseMirror {
   @apply h-full text-base;
+  caret-color: black;
 }
 
 .ProseMirror p {

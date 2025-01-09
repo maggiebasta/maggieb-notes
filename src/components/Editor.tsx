@@ -99,7 +99,7 @@ export function Editor({ note, onNoteChange }: EditorProps) {
         placeholder="Note title"
       />
       <div 
-        className="w-full h-[calc(100vh-200px)] p-4 bg-white rounded-lg border border-gray-200 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent overflow-y-auto"
+        className="w-full h-[calc(100vh-200px)] p-4 bg-white rounded-lg border border-gray-200 focus-within:ring-1 focus-within:ring-blue-500 focus-within:border-blue-500 overflow-y-auto"
         onKeyDown={handleKeyDown}
       >
         <EditorContent 
