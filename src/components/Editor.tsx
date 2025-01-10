@@ -16,7 +16,11 @@ interface EditorProps {
 export function Editor({ note, onNoteChange }: EditorProps) {
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2, 3]
+        }
+      }),
       BulletList,
       ListItem,
       TaskList,
@@ -28,6 +32,11 @@ export function Editor({ note, onNoteChange }: EditorProps) {
       attributes: {
         class: 'prose prose-sm max-w-none leading-normal',
       },
+      handleDOMEvents: {
+        focus: () => {
+          return false;
+        },
+      },
     },
     onUpdate: ({ editor }) => {
       if (!note) return;
@@ -38,7 +47,7 @@ export function Editor({ note, onNoteChange }: EditorProps) {
       });
     },
     onCreate: ({ editor }) => {
-      editor.commands.focus();
+      editor.commands.focus('end');
     },
   });
 
@@ -99,12 +108,12 @@ export function Editor({ note, onNoteChange }: EditorProps) {
         placeholder="Note title"
       />
       <div 
-        className="w-full h-[calc(100vh-200px)] p-4 bg-white rounded-lg border border-gray-200 focus-within:ring-1 focus-within:ring-blue-500 focus-within:border-blue-500 overflow-y-auto"
+        className="w-full h-[calc(100vh-200px)] p-4 bg-white rounded-lg border border-gray-200 overflow-y-auto"
         onKeyDown={handleKeyDown}
       >
         <EditorContent 
           editor={editor} 
-          className="h-full focus:outline-none"
+          className="h-full outline-none"
         />
       </div>
     </div>

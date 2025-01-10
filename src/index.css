@@ -4,8 +4,15 @@
 
 /* Editor Styles */
 .ProseMirror {
-  @apply h-full text-base;
-  caret-color: black;
+  @apply h-full text-base relative;
+}
+
+.ProseMirror .cursor {
+  @apply border-r-2 border-black;
+  margin-right: -1px;
+  pointer-events: none;
+  position: relative;
+  word-break: normal;
 }
 
 .ProseMirror p {
