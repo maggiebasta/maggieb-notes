@@ -72,12 +72,12 @@ function App() {
     // Add current date to note content and convert text to HTML
     const today = new Date().toLocaleDateString();
     const text = template ? template.content : "";
-    // Wrap newlines in <p> tags, preserving empty lines
+    // Convert text to HTML, handling empty lines with br tags
     const contentHtml = text
       .split("\n")
-      .map(line => line.trim() ? `<p>${line}</p>` : "<p><br/></p>")
+      .map(line => line.trim() ? `<p>${line}</p>` : "<br/>")
       .join("");
-    const content = `<p>${today}</p><p><br/></p>${contentHtml}`;
+    const content = `<p>${today}</p><br/>${contentHtml}`;
 
     const newNote = {
       user_id: user.id,

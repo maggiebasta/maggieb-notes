@@ -58,7 +58,7 @@ export function Editor({ note, onNoteChange }: EditorProps) {
       if (!note.content.includes("<") && !note.content.includes(">")) {
         const converted = note.content
           .split("\n")
-          .map(line => line.trim() ? `<p>${line}</p>` : "<p><br/></p>")
+          .map(line => line.trim() ? `<p>${line}</p>` : "<br/>")
           .join("");
         editor.commands.setContent(converted);
       } else if (editor.getHTML() !== note.content) {
