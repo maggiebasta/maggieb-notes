@@ -69,11 +69,15 @@ function App() {
   const createNote = async (template?: Template) => {
     if (!user) return;
 
-    // Add current date to note content
+    // Add current date to note content and convert text to HTML
     const today = new Date().toLocaleDateString();
-    const content = template 
-      ? `${today}\n\n${template.content}`
-      : `${today}\n\n`;
+    const text = template ? template.content : "";
+    // Wrap newlines in <p> tags, preserving empty lines
+    const contentHtml = text
+      .split("\n")
+      .map(line => line.trim() ? `<p>${line}</p>` : "<p><br/></p>")
+      .join("");
+    const content = `<p>${today}</p><p><br/></p>${contentHtml}`;
 
     const newNote = {
       user_id: user.id,
