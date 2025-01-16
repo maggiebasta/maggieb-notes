@@ -77,7 +77,7 @@ function App() {
       .split("\n")
       .map(line => line.trim() ? `<p>${line}</p>` : "<br/>")
       .join("");
-    const content = `<p>${today}</p><br/>${contentHtml}`;
+    const content = `<p>${today}</p>${contentHtml}`;
 
     const newNote = {
       user_id: user.id,
