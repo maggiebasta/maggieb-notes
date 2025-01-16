@@ -34,7 +34,17 @@ A note-taking application built with React, TypeScript, and Supabase.
 - Note creation and editing
 - Template system
 - Real-time updates
-- Markdown support
+- Rich text editing with keyboard shortcuts:
+  - Press `-` to create a bullet point
+  - `Ctrl/Cmd + B` for bold text
+  - `Ctrl/Cmd + I` for italic text
+  - `Ctrl/Cmd + U` for underlined text
+  - `Tab` to indent lists
+  - `Shift + Tab` to outdent lists
+  - `Ctrl/Cmd + Shift + 7` for numbered lists
+  - `Ctrl/Cmd + Alt + [1-6]` for headings
+  - `Ctrl/Cmd + Alt + C` for code blocks
+  - `Ctrl/Cmd + Shift + B` for blockquotes
 - Automatic saving
 
 ## Tech Stack
@@ -44,6 +54,7 @@ A note-taking application built with React, TypeScript, and Supabase.
 - Tailwind CSS
 - Supabase (Backend & Authentication)
 - Vite (Build Tool)
+- TipTap (Rich Text Editor)
 
 ## Getting Started
 
