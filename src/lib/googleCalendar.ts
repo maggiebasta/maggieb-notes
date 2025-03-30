@@ -22,20 +22,36 @@ export interface CalendarEvent {
 export async function getRecentAndUpcomingEvents(): Promise<CalendarEvent[]> {
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return [];
+    if (!session) {
+      console.log('No session found');
+      return [];
+    }
     
     const provider = session.user?.app_metadata?.provider;
-    if (provider !== 'google') return [];
+    if (provider !== 'google') {
+      console.log('Not using Google provider:', provider);
+      return [];
+    }
     
     const { provider_token } = session;
-    if (!provider_token) return [];
+    if (!provider_token) {
+      console.log('No provider token found');
+      return [];
+    }
     
     const now = new Date();
-    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-    const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+    console.log('Current time:', now.toLocaleString());
     
-    const timeMin = oneHourAgo.toISOString();
-    const timeMax = oneHourLater.toISOString();
+    const startOfDay = new Date(now);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(now);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    const timeMin = startOfDay.toISOString();
+    const timeMax = endOfDay.toISOString();
+    
+    console.log('Fetching events from', startOfDay.toLocaleString(), 'to', endOfDay.toLocaleString());
     
     const response = await fetch(
       `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`,
@@ -47,11 +63,24 @@ export async function getRecentAndUpcomingEvents(): Promise<CalendarEvent[]> {
     );
     
     if (!response.ok) {
-      throw new Error('Failed to fetch calendar events');
+      const errorText = await response.text();
+      console.error('API Error:', response.status, errorText);
+      throw new Error(`Failed to fetch calendar events: ${response.status} ${errorText}`);
     }
     
     const data = await response.json();
-    return data.items as CalendarEvent[];
+    console.log('Events found:', data.items?.length || 0);
+    
+    const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+    const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+    
+    const filteredEvents = data.items?.filter((event: CalendarEvent) => {
+      const eventStart = new Date(event.start.dateTime);
+      return eventStart >= twoHoursAgo && eventStart <= twoHoursLater;
+    }) || [];
+    
+    console.log('Filtered events within time range:', filteredEvents.length);
+    return filteredEvents as CalendarEvent[];
   } catch (error) {
     console.error('Error fetching calendar events:', error);
     return [];
