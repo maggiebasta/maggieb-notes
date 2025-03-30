@@ -45,19 +45,12 @@ export async function getRecentAndUpcomingEvents(): Promise<CalendarEvent[]> {
     const now = new Date();
     console.log('Current time:', now.toLocaleString());
     
-    const startOfDay = new Date(now);
-    startOfDay.setHours(0, 0, 0, 0);
+    const timeMin = now.toISOString();
     
-    const endOfDay = new Date(now);
-    endOfDay.setHours(23, 59, 59, 999);
-    
-    const timeMin = startOfDay.toISOString();
-    const timeMax = endOfDay.toISOString();
-    
-    console.log('Fetching events from', startOfDay.toLocaleString(), 'to', endOfDay.toLocaleString());
+    console.log('Fetching next 5 upcoming events from', now.toLocaleString());
     
     const response = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime&maxResults=10`,
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&singleEvents=true&orderBy=startTime&maxResults=5`,
       {
         headers: {
           Authorization: `Bearer ${provider_token}`,

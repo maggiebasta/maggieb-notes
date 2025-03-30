@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar, Plus, FileText, RefreshCw } from 'lucide-react';
 import { getRecentAndUpcomingEvents } from '../lib/googleCalendar';
 import { Template } from '../types';
@@ -36,6 +36,10 @@ export function CalendarMenu({ templates, onCreateFromCalendar }: CalendarMenuPr
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+  
   const fetchEvents = async () => {
     setLoading(true);
     setError(null);
@@ -43,6 +47,9 @@ export function CalendarMenu({ templates, onCreateFromCalendar }: CalendarMenuPr
       const calendarEvents = await getRecentAndUpcomingEvents();
       console.log('Calendar events received:', calendarEvents.length);
       setEvents(calendarEvents);
+      
+      setSelectedEvent(null);
+      setShowTemplateOptions(false);
     } catch (err) {
       console.error('Error in CalendarMenu:', err);
       setError('Failed to load calendar events');
@@ -119,6 +126,11 @@ export function CalendarMenu({ templates, onCreateFromCalendar }: CalendarMenuPr
             </div>
           ) : hasEvents ? (
             <>
+              {/* Meeting list header */}
+              <div className="px-4 py-2 text-xs font-medium text-gray-500 bg-gray-50">
+                Your next 5 upcoming meetings
+              </div>
+              
               {/* Meeting list */}
               <div className="max-h-60 overflow-y-auto">
                 {events.map((event) => (
@@ -143,7 +155,7 @@ export function CalendarMenu({ templates, onCreateFromCalendar }: CalendarMenuPr
             </>
           ) : (
             <div className="p-4 text-center text-gray-500">
-              No calendar events found
+              No upcoming meetings found
             </div>
           )}
           
