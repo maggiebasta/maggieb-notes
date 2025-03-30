@@ -12,3 +12,22 @@ export interface Template {
   name: string;
   content: string;
 }
+
+export interface CalendarEvent {
+  id: string;
+  summary: string; // Title of the event
+  description?: string;
+  start: {
+    dateTime: string;
+    timeZone: string;
+  };
+  end: {
+    dateTime: string;
+    timeZone: string;
+  };
+  attendees?: Array<{
+    email: string;
+    displayName?: string;
+    responseStatus?: string;
+  }>;
+}

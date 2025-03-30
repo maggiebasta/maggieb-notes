@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { Note, Template } from './types';
+import { useState, useEffect } from 'react';
+import { Note, Template, CalendarEvent } from './types';
 import { NoteList } from './components/NoteList';
 import { Editor } from './components/Editor';
 import { TemplateSelector } from './components/TemplateSelector';
 import { supabase } from './lib/supabase';
 import { AuthForm } from './components/AuthForm';
 import { User } from '@supabase/supabase-js';
+import { CalendarMenu } from './components/CalendarMenu';
 
 /**
  * App - Main application component for MaggieB's Notes
@@ -141,6 +142,57 @@ function App() {
     }
   };
 
+  const createNoteFromCalendar = async (event: CalendarEvent, template?: Template) => {
+    if (!user) return;
+
+    const eventDate = new Date(event.start.dateTime).toLocaleString();
+    const attendees = event.attendees 
+      ? event.attendees
+          .map((a) => a.displayName || a.email)
+          .join(", ")
+      : "No attendees";
+
+    // Add current date to note content and convert text to HTML
+    const today = new Date().toLocaleDateString();
+    const baseText = template ? template.content : "";
+    
+    const meetingInfo = `
+      <h2>Meeting Details</h2>
+      <p><strong>Date/Time:</strong> ${eventDate}</p>
+      <p><strong>Attendees:</strong> ${attendees}</p>
+      <br/>
+    `;
+
+    // Convert text to HTML, handling empty lines with br tags
+    const contentHtml = baseText
+      .split("\n")
+      .map(line => line.trim() ? `<p>${line}</p>` : "<br/>")
+      .join("");
+
+    const content = `<p>${today}</p>${meetingInfo}${contentHtml}`;
+
+    const newNote = {
+      user_id: user.id,
+      title: event.summary || 'Meeting Note',
+      content,
+      template_id: template?.id,
+    };
+
+    const { data, error } = await supabase
+      .from('notes')
+      .insert([newNote])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating note:', error);
+      return;
+    }
+
+    setNotes(prevNotes => [data, ...prevNotes]);
+    setSelectedNote(data);
+  };
+
   // Show auth form if user is not logged in
   if (!user) {
     return <AuthForm />;
@@ -155,11 +207,17 @@ function App() {
           selectedNoteId={selectedNote?.id}
           onDeleteNote={deleteNote}
         />
-        <TemplateSelector
-          templates={templates}
-          onCreateFromTemplate={createNote}
-          onCreateBlankNote={() => createNote()}
-        />
+        <div className="absolute top-4 right-4 z-10 flex gap-2">
+          <CalendarMenu
+            templates={templates}
+            onCreateFromCalendar={createNoteFromCalendar}
+          />
+          <TemplateSelector
+            templates={templates}
+            onCreateFromTemplate={createNote}
+            onCreateBlankNote={() => createNote()}
+          />
+        </div>
         <Editor note={selectedNote} onNoteChange={updateNote} />
       </div>
     </div>
