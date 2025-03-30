@@ -18,12 +18,14 @@ export interface CalendarEvent {
   summary: string; // Title of the event
   description?: string;
   start: {
-    dateTime: string;
-    timeZone: string;
+    dateTime?: string;
+    date?: string;
+    timeZone?: string;
   };
   end: {
-    dateTime: string;
-    timeZone: string;
+    dateTime?: string;
+    date?: string;
+    timeZone?: string;
   };
   attendees?: Array<{
     email: string;

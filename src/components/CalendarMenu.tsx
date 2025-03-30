@@ -8,12 +8,14 @@ interface CalendarEvent {
   summary: string;
   description?: string;
   start: {
-    dateTime: string;
-    timeZone: string;
+    dateTime?: string;
+    date?: string;
+    timeZone?: string;
   };
   end: {
-    dateTime: string;
-    timeZone: string;
+    dateTime?: string;
+    date?: string;
+    timeZone?: string;
   };
   attendees?: Array<{
     email: string;
@@ -32,18 +34,49 @@ export function CalendarMenu({ templates, onCreateFromCalendar }: CalendarMenuPr
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showTemplateOptions, setShowTemplateOptions] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const fetchEvents = async () => {
     setLoading(true);
-    const calendarEvents = await getRecentAndUpcomingEvents();
-    setEvents(calendarEvents);
-    setLoading(false);
+    setError(null);
+    try {
+      const calendarEvents = await getRecentAndUpcomingEvents();
+      console.log('Calendar events received:', calendarEvents.length);
+      setEvents(calendarEvents);
+    } catch (err) {
+      console.error('Error in CalendarMenu:', err);
+      setError('Failed to load calendar events');
+    } finally {
+      setLoading(false);
+    }
   };
   
-  const formatEventTime = (dateTimeStr: string) => {
-    const date = new Date(dateTimeStr);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const formatEventTime = (event: CalendarEvent) => {
+    try {
+      const dateStr = event.start.dateTime || event.start.date;
+      if (!dateStr) {
+        return 'Time not available';
+      }
+      
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) {
+        console.log('Invalid date format:', dateStr);
+        return 'Invalid date';
+      }
+      
+      return date.toLocaleString([], { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (e) {
+      console.error('Error formatting date:', e);
+      return 'Date error';
+    }
   };
+  
+  const hasEvents = events && events.length > 0;
   
   return (
     <div className="relative group">
@@ -75,12 +108,16 @@ export function CalendarMenu({ templates, onCreateFromCalendar }: CalendarMenuPr
             </button>
           </div>
           
-          {/* Show events or loading indicator */}
+          {/* Show events, loading indicator, or error */}
           {loading ? (
             <div className="p-4 text-center text-gray-500">
               Loading calendar events...
             </div>
-          ) : events.length > 0 ? (
+          ) : error ? (
+            <div className="p-4 text-center text-red-500">
+              {error}
+            </div>
+          ) : hasEvents ? (
             <>
               {/* Meeting list */}
               <div className="max-h-60 overflow-y-auto">
@@ -97,7 +134,7 @@ export function CalendarMenu({ templates, onCreateFromCalendar }: CalendarMenuPr
                     <div className="overflow-hidden">
                       <div className="font-medium truncate">{event.summary}</div>
                       <div className="text-xs text-gray-500">
-                        {formatEventTime(event.start.dateTime)}
+                        {formatEventTime(event)}
                       </div>
                     </div>
                   </button>
@@ -106,7 +143,7 @@ export function CalendarMenu({ templates, onCreateFromCalendar }: CalendarMenuPr
             </>
           ) : (
             <div className="p-4 text-center text-gray-500">
-              No meetings found in the past hour or upcoming hour
+              No calendar events found
             </div>
           )}
           

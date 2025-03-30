@@ -39,6 +39,9 @@ export async function getRecentAndUpcomingEvents(): Promise<CalendarEvent[]> {
       return [];
     }
     
+    const tokenPreview = provider_token.substring(0, 5) + '...' + provider_token.substring(provider_token.length - 5);
+    console.log('Using provider token:', tokenPreview);
+    
     const now = new Date();
     console.log('Current time:', now.toLocaleString());
     
@@ -54,13 +57,16 @@ export async function getRecentAndUpcomingEvents(): Promise<CalendarEvent[]> {
     console.log('Fetching events from', startOfDay.toLocaleString(), 'to', endOfDay.toLocaleString());
     
     const response = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`,
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime&maxResults=10`,
       {
         headers: {
           Authorization: `Bearer ${provider_token}`,
+          'Content-Type': 'application/json',
         },
       }
     );
+    
+    console.log('API Response status:', response.status);
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -71,16 +77,22 @@ export async function getRecentAndUpcomingEvents(): Promise<CalendarEvent[]> {
     const data = await response.json();
     console.log('Events found:', data.items?.length || 0);
     
-    const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-    const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+    if (!data.items || data.items.length === 0) {
+      console.log('No events returned from the API');
+      return [];
+    }
     
-    const filteredEvents = data.items?.filter((event: CalendarEvent) => {
-      const eventStart = new Date(event.start.dateTime);
-      return eventStart >= twoHoursAgo && eventStart <= twoHoursLater;
-    }) || [];
+    if (data.items.length > 0) {
+      const sampleEvent = data.items[0];
+      console.log('Sample event:', JSON.stringify({
+        id: sampleEvent.id,
+        summary: sampleEvent.summary,
+        start: sampleEvent.start,
+        end: sampleEvent.end
+      }, null, 2));
+    }
     
-    console.log('Filtered events within time range:', filteredEvents.length);
-    return filteredEvents as CalendarEvent[];
+    return data.items as CalendarEvent[];
   } catch (error) {
     console.error('Error fetching calendar events:', error);
     return [];

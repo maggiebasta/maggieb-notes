@@ -145,7 +145,9 @@ function App() {
   const createNoteFromCalendar = async (event: CalendarEvent, template?: Template) => {
     if (!user) return;
 
-    const eventDate = new Date(event.start.dateTime).toLocaleString();
+    const dateStr = event.start.dateTime || event.start.date || '';
+    const eventDate = new Date(dateStr).toLocaleString();
+    
     const attendees = event.attendees 
       ? event.attendees
           .map((a) => a.displayName || a.email)
