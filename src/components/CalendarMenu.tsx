@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar, Plus, FileText } from 'lucide-react';
+import { Calendar, Plus, FileText, RefreshCw } from 'lucide-react';
 import { getRecentAndUpcomingEvents } from '../lib/googleCalendar';
 import { Template } from '../types';
 
@@ -50,6 +50,9 @@ export function CalendarMenu({ templates, onCreateFromCalendar }: CalendarMenuPr
       {/* New note from calendar button */}
       <button 
         className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+        onClick={() => {
+          fetchEvents();
+        }}
         onMouseEnter={fetchEvents}
       >
         <Calendar className="w-4 h-4" />
@@ -60,6 +63,18 @@ export function CalendarMenu({ templates, onCreateFromCalendar }: CalendarMenuPr
       <div className="absolute top-full right-0 w-80">
         <div className="h-2" /> {/* Invisible bridge for hover state */}
         <div className="hidden group-hover:block bg-white rounded-lg shadow-lg border border-gray-200">
+          {/* Header with refresh button */}
+          <div className="flex justify-between items-center p-2 border-b border-gray-100">
+            <span className="text-sm font-medium text-gray-700">Calendar Events</span>
+            <button 
+              onClick={fetchEvents}
+              className="p-1 text-gray-500 hover:text-blue-600 rounded-full hover:bg-gray-100"
+              title="Refresh calendar events"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
+          </div>
+          
           {/* Show events or loading indicator */}
           {loading ? (
             <div className="p-4 text-center text-gray-500">
