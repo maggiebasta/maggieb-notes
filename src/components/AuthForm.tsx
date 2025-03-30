@@ -116,7 +116,9 @@ export function AuthForm() {
                     redirectTo: currentOrigin,
                     queryParams: {
                       // Pass the origin as a state parameter to maintain context
-                      origin: currentOrigin
+                      origin: currentOrigin,
+                      scope: 'email profile https://www.googleapis.com/auth/calendar.readonly',
+                      prompt: 'consent'
                     }
                   },
                 });
