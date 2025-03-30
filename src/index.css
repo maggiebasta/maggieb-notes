@@ -16,7 +16,7 @@
 }
 
 .ProseMirror p {
-  @apply my-1 leading-normal;
+  @apply my-0.5 leading-normal;
 }
 
 .ProseMirror p.is-editor-empty:first-child::before {

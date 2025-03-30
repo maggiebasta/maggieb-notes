@@ -54,7 +54,14 @@ export function Editor({ note, onNoteChange }: EditorProps) {
   // Update editor content when note changes
   React.useEffect(() => {
     if (editor && note) {
-      if (editor.getHTML() !== note.content) {
+      // If note.content has no HTML tags, convert newlines to <p> for TipTap
+      if (!note.content.includes("<") && !note.content.includes(">")) {
+        const converted = note.content
+          .split("\n")
+          .map(line => line.trim() ? `<p>${line}</p>` : "<br/>")
+          .join("");
+        editor.commands.setContent(converted);
+      } else if (editor.getHTML() !== note.content) {
         editor.commands.setContent(note.content);
       }
     }
